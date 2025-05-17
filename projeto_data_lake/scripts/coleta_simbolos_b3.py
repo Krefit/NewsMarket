@@ -3,9 +3,13 @@ import duckdb
 import requests
 from io import BytesIO
 from zipfile import ZipFile
+import os
+
+# Garante que a pasta exista
+os.makedirs("../banco_dados", exist_ok=True)
 
 # --- Configuração do caminho do banco ---
-BANCO_PATH = "../banco_dados/acoes_duckdb.db"
+BANCO_PATH = os.path.abspath(os.path.join("..", "banco_dados", "acoes_duckdb.db"))
 TABELA = "ativos_b3"
 
 # --- Conectar ao banco e criar tabela se necessário ---
@@ -21,7 +25,7 @@ CREATE TABLE IF NOT EXISTS {TABELA} (
 """)
 
 # --- URL oficial do site da B3 com os ativos listados ---
-url = "https://sistemaswebb3-listados.b3.com.br/listedCompanies/download"
+url = "https://sistemaswebb3-listados.b3.com.br/listedCompaniesPage/search?language=pt-br"
 
 response = requests.get(url)
 if response.status_code != 200:

@@ -1,11 +1,13 @@
 # scripts/coleta_precos_intradiarios_binance.py
-
 import os
 import datetime
 import duckdb
 from binance.client import Client
 from binance.enums import HistoricalKlinesType
 from dotenv import load_dotenv
+
+# Garante que a pasta exista
+os.makedirs("../banco_dados", exist_ok=True)
 
 load_dotenv()
 

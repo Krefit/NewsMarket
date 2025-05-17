@@ -1,9 +1,16 @@
 import duckdb
 import pandas as pd
+import os
+
+# Garante que a pasta exista
+os.makedirs("../banco_dados", exist_ok=True)
 
 # Caminho para o banco local
-BANCO_PATH = "../banco_dados/acoes_duckdb.db"
+BANCO_PATH = os.path.abspath(os.path.join("..", "banco_dados", "acoes_duckdb.db"))
 con = duckdb.connect(BANCO_PATH)
+
+# Garante que a pasta exista
+os.makedirs("../banco_dados", exist_ok=True)
 
 # --- Exemplo 1: calcular médias móveis nos preços diários ---
 def calcular_medias_moveis(simbolo: str):

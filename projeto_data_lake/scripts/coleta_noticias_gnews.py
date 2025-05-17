@@ -4,10 +4,13 @@ import duckdb
 from datetime import datetime, timedelta
 import os
 
+# Garante que a pasta exista
+os.makedirs("../banco_dados", exist_ok=True)
+
 # --- Configurações ---
 API_KEY = os.getenv("GNEWS_API_KEY")  # Definida no .env ou manualmente
 PALAVRAS_CHAVE = ["Petrobras", "Vale", "FII", "dividendos", "Ibovespa"]
-BANCO_PATH = "../banco_dados/acoes_duckdb.db"
+BANCO_PATH = os.path.abspath(os.path.join("..", "banco_dados", "acoes_duckdb.db"))
 
 # --- Conectar ao banco e criar tabela, se necessário ---
 con = duckdb.connect(BANCO_PATH)

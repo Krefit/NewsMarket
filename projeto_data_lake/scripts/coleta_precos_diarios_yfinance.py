@@ -1,10 +1,14 @@
 import yfinance as yf
 import pandas as pd
 import duckdb
+import os
 from datetime import datetime, timedelta
 
+# Garante que a pasta exista
+os.makedirs("../banco_dados", exist_ok=True)
+
 # --- Configurações ---
-BANCO_PATH = "../banco_dados/acoes_duckdb.db"
+BANCO_PATH = os.path.abspath(os.path.join("..", "banco_dados", "acoes_duckdb.db"))
 TABELA = "precos_diarios"
 SIMBOLOS = ["PETR4.SA"]  # Exemplo de símbolo para Petrobras
 
