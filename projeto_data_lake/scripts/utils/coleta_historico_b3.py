@@ -75,7 +75,7 @@ def save_to_duckdb_incremental(df: pd.DataFrame, db_path: str, table: str):
     print(f"→ Inseridas apenas linhas novas em {os.path.abspath(db_path)} (tabela {table})")
 
 if __name__ == '__main__':
-    tickers = ['PETR4.SAO']
+    tickers = ['PETR4.SAO','HGPO11.SAO','HTMX11.SAO','MXRF11.SAO', 'MALL11.SAO']
 
     # 2) Faz download e concatena
     dfs = [fetch_daily(sym) for sym in tickers]
