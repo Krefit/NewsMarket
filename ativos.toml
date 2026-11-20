@@ -1,0 +1,40 @@
+# Lista de ativos acompanhados pelo NewsMarket.
+# ticker: código na B3 (sem o .SA; o sufixo é colocado automaticamente)
+# tipo:   "fii" ou "acao"
+# termos: palavras usadas para buscar e associar notícias ao ativo.
+#         Inclua o ticker, o nome do fundo/empresa e o gestor quando fizer sentido.
+
+[[ativo]]
+ticker = "MXRF11"
+tipo = "fii"
+termos = ["MXRF11", "Maxi Renda"]
+
+[[ativo]]
+ticker = "HGLG11"
+tipo = "fii"
+termos = ["HGLG11", "CSHG Logística", "Pátria Log"]
+
+[[ativo]]
+ticker = "KNRI11"
+tipo = "fii"
+termos = ["KNRI11", "Kinea Renda Imobiliária"]
+
+[[ativo]]
+ticker = "XPML11"
+tipo = "fii"
+termos = ["XPML11", "XP Malls"]
+
+[[ativo]]
+ticker = "HTMX11"
+tipo = "fii"
+termos = ["HTMX11", "Hotel Maxinvest"]
+
+[[ativo]]
+ticker = "PETR4"
+tipo = "acao"
+termos = ["PETR4", "Petrobras"]
+
+# Índices de referência (comparação e features de mercado). Não precisam de termos.
+[referencias]
+ifix = "XFIX11"   # ETF que replica o IFIX (índice de FIIs)
+ibov = "^BVSP"    # Ibovespa

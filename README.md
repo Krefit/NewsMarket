@@ -1,108 +1,131 @@
-# 📊 Projeto Data Lake - Mercado Financeiro
+# 📰📈 NewsMarket
 
-Este projeto tem como objetivo a criação de um *data lake* com dados de ações, preços e notícias, centralizados em um banco de dados DuckDB. Ele automatiza a coleta e persistência de informações de diferentes fontes para análises e modelagens futuras.
+Bot que guarda o histórico de ativos da B3 (começando por **FIIs**), mede o **impacto das
+notícias** no preço de cada ativo e faz uma **predição de alta ou baixa** para o próximo pregão.
 
----
-
-## 📁 Estrutura do Projeto
-
-```
-projeto_data_lake/
-├── banco_dados/                      # Arquivos DuckDB gerados
-├── scripts/                          # Scripts de coleta
-│   ├── coleta_simbolos_b3.py
-│   ├── coleta_precos_diarios_yfinance.py
-│   ├── coleta_precos_intradiarios_binance.py
-│   └── coleta_noticias_gnews.py
-├── .venv/                            # Ambiente virtual Python
-├── requirements.txt                  # Dependências do projeto
-└── run_all.bat                       # Script para executar todas as coletas
-```
+> ⚠️ Projeto de estudo. As previsões não são recomendação de investimento. O próprio bot
+> mostra o histórico de acerto do modelo e neutraliza os sinais quando ele não supera um
+> palpite trivial.
 
 ---
 
-## ⚙️ Requisitos
+## Como funciona
 
-- Python 3.10+
-- DuckDB
-- Ambiente virtual (recomendado)
-- Conta de API no [GNews](https://gnews.io/) (gratuita)
-- Conta na [Binance](https://binance.com) com API habilitada (opcional)
+```
+ Yahoo Finance ──► precos ─────────────┐
+                                       ├─► features ─► modelo ─► predicoes
+ Google News RSS ─► noticias ─► sentimento ─┘        (alta/baixa + prob.)
+ Portais (RSS)        │                 │
+                      └─ noticia_ativo  └─► estudo de evento (impacto)
+```
+
+1. **Coleta de preços** (`yfinance`, sem chave): histórico diário com preço ajustado por
+   proventos, para que a queda na data-com dos FIIs não seja lida como "impacto de notícia".
+2. **Coleta de notícias** (RSS, sem chave): busca no Google News pelos termos de cada ativo
+   e lê os feeds do InfoMoney, Money Times e Brazil Journal. Cada notícia é associada aos ativos
+   que cita. O Google News só devolve cerca de 100 itens por busca, por isso existem a coleta
+   diária e o *backfill* mês a mês.
+3. **Sentimento**: score de −1 a +1 por manchete. O padrão é um léxico financeiro em português
+   voltado para FIIs (vacância, inadimplência, dividendos, emissão...). Opcionalmente dá para usar
+   o modelo **FinBERT-PT-BR**.
+4. **Impacto** (estudo de evento): retorno anormal (ativo − IFIX, ou − Ibovespa para ações)
+   no dia da notícia e acumulado nos dias seguintes, separado por notícias positivas, negativas
+   e neutras, com estatística t.
+5. **Predição**: classificador (*gradient boosting*) que prevê se o preço sobe ou cai nos
+   próximos *N* pregões. A validação é **walk-forward**, ou seja, sempre treina no passado e
+   testa no futuro, e compara três versões:
+   - palpite trivial (sempre a classe mais comum);
+   - modelo só com preços;
+   - modelo com preços + notícias, que é o que responde à pergunta do projeto.
+
+Tudo fica em um único banco **DuckDB** (`dados/newsmarket.duckdb`), com as tabelas
+`precos`, `noticias`, `noticia_ativo`, `sentimento` e `predicoes`.
 
 ---
 
-## 📦 Instalação
+## Instalação (Windows)
 
-1. Clone este repositório:
-```bash
-git clone https://github.com/seu-usuario/projeto_data_lake.git
-cd projeto_data_lake
-```
-
-2. Crie e ative um ambiente virtual:
-```bash
+```bat
+git clone https://github.com/Krefit/NewsMarket.git
+cd NewsMarket
 python -m venv .venv
 .venv\Scripts\activate
-```
-
-3. Instale as dependências:
-```bash
 pip install -r requirements.txt
 ```
 
----
+Requer Python 3.11+. Nenhuma chave de API é necessária. O `.env` é opcional (veja `.env.example`).
 
-## 🧠 Funcionalidades
+## Uso
 
-| Script                                | Descrição |
-|---------------------------------------|-----------|
-| `coleta_simbolos_b3.py`               | Baixa a lista de ativos da B3 (em breve substituível por MetaTrader5). |
-| `coleta_precos_diarios_yfinance.py`   | Coleta preços diários dos ativos via Yahoo Finance. |
-| `coleta_precos_intradiarios_binance.py` | Coleta dados intradiários de criptoativos da Binance. |
-| `coleta_noticias_gnews.py`            | Busca notícias relacionadas a temas financeiros via GNews API. |
+```bat
+:: 1ª vez: histórico de preços + notícias desde 2023 (o backfill leva alguns minutos)
+python -m newsmarket coletar --backfill-desde 2023-01-01
 
----
+python -m newsmarket status                  :: o que há no banco
+python -m newsmarket impacto                 :: efeito das notícias, por ativo
+python -m newsmarket impacto --ticker MXRF11 --janela 5
+python -m newsmarket prever                  :: valida o modelo e prevê o próximo pregão
+python -m newsmarket prever --horizonte 5    :: direção em 5 pregões
 
-## ▶️ Execução
-
-Execute o arquivo `run_all.bat` para rodar todos os scripts em sequência:
-
-```bash
-run_all.bat
+python -m newsmarket rodar                   :: rotina diária = coletar + prever
 ```
 
-Ou execute individualmente:
+Para virar um bot, agende o `rodar_diario.bat` no Agendador de Tarefas do Windows
+(diariamente, depois das 18h). O log vai para `logs\rodar_diario.log`.
 
-```bash
-python scripts/coleta_precos_diarios_yfinance.py
+### Escolher os ativos
+
+Edite o `ativos.toml`. Para cada ativo, informe o ticker, o tipo (`fii` ou `acao`) e os
+termos usados para encontrar notícias (ticker, nome do fundo, gestor):
+
+```toml
+[[ativo]]
+ticker = "MXRF11"
+tipo = "fii"
+termos = ["MXRF11", "Maxi Renda"]
+```
+
+### Sentimento com FinBERT (opcional)
+
+```bat
+pip install transformers torch
+python -m newsmarket coletar --sentimento finbert
 ```
 
 ---
 
-## 🐛 Possíveis Erros Comuns
+## Estrutura
 
-- `ModuleNotFoundError`: Certifique-se de que o ambiente virtual está ativado e as dependências instaladas.
-- `duckdb.IOException`: A pasta `banco_dados/` precisa existir antes da execução.
-- `Erro 400 na GNews`: Verifique se a API Key está correta e dentro dos limites de requisição.
+```
+newsmarket/
+├── config.py            # caminhos e leitura do ativos.toml
+├── db.py                # esquema DuckDB e gravação idempotente
+├── coleta/
+│   ├── precos.py        # yfinance
+│   └── noticias.py      # RSS: Google News + portais, associação notícia↔ativo
+├── analise/
+│   ├── sentimento.py    # léxico PT-BR / FinBERT-PT-BR
+│   └── impacto.py       # estudo de evento
+├── modelo/
+│   ├── features.py      # features de preço e de notícia, sem vazamento do futuro
+│   └── treino.py        # validação walk-forward, treino e predição
+└── __main__.py          # linha de comando
+tests/                   # pytest com dados sintéticos (rode: python -m pytest)
+legado/                  # scripts da versão 1 (Alpha Vantage, Finnhub, crawler Clube FII)
+```
+
+## Limitações conhecidas
+
+- **Prever a direção de preços é difícil.** Acurácias de 52–55% fora da amostra já são
+  consideradas boas. Comece olhando o `impacto`, que diz se existe sinal antes de confiar
+  no `prever`.
+- FIIs pequenos têm poucas notícias. O backfill e a coleta diária ao longo de meses
+  melhoram isso.
+- O horário das notícias vem do RSS. Notícias publicadas depois das 17h contam para o
+  pregão seguinte.
+- O Yahoo Finance pode ter falhas pontuais em tickers da B3. O bot registra o erro e segue
+  com os demais ativos.
 
 ---
 
-## 📘 Futuras Melhorias
-
-- Suporte a MetaTrader5 para dados da B3.
-- Normalização e limpeza dos dados.
-- Integração com ferramentas de visualização (e.g. Dash, Power BI).
-- Criação de pipelines automatizados (Airflow, Prefect).
-
----
-
-## 👨‍💻 Autor
-
-Gustavo Krawczyk Santos  
-Projeto pessoal para estudos em Ciência de Dados no mercado financeiro.
-
----
-
-## 📜 Licença
-
-MIT License. Consulte o arquivo `LICENSE` para mais informações.
+Gustavo Krawczyk Santos · Licença MIT
