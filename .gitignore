@@ -1,1 +1,23 @@
+# Segredos
+.env
+
+# Ambiente virtual e caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Dados gerados
+dados/
 *.db
+*.duckdb
+*.duckdb.wal
+modelos/*.joblib
+relatorios/
+
+# Diversos
+*.zip
+.qodo
+.idea/
+.vscode/
